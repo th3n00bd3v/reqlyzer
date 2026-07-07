@@ -1,103 +1,220 @@
-from typing import List, Dict
+from models.request import AnalyzedRequest
+from models.security import SecurityAnalysis, SecurityFinding
 
 
 class SecurityAnalyzer:
     """
-    Performs deterministic security analysis on metadata extracted
-    from a parsed HAR request.
+    Performs deterministic security analysis on a parsed request.
     """
 
-    def analyze(self, request: dict) -> List[Dict]:
+    SENSITIVE_HEADERS = {
+        "Authorization",
+        "Cookie",
+        "X-API-Key",
+        "Api-Key",
+        "X-Auth-Token",
+    }
 
-        findings = []
+    SECURITY_HEADERS = [
+        "Content-Security-Policy",
+        "Strict-Transport-Security",
+        "X-Frame-Options",
+        "X-Content-Type-Options",
+        "Referrer-Policy",
+    ]
 
-        metadata = request.get("metadata", {})
+    TOKEN_PARAMETERS = {
+        "token",
+        "access_token",
+        "apikey",
+        "api_key",
+        "key",
+        "jwt",
+    }
 
-        method = request.get("method", "").upper()
+    def analyze(self, request: AnalyzedRequest) -> AnalyzedRequest:
 
-        # ---------------------------------------------------
-        # Rule 1: HTTP instead of HTTPS
-        # ---------------------------------------------------
+        security = SecurityAnalysis()
 
-        if not metadata.get("uses_https", False):
+        # --------------------------------------------------
+        # HTTPS Check
+        # --------------------------------------------------
 
-            findings.append({
-                "severity": "High",
-                "title": "Insecure Transport",
-                "description": "The request uses HTTP instead of HTTPS.",
-                "recommendation": "Always use HTTPS for transmitting application data."
-            })
+        security.https = request.scheme.lower() == "https"
 
-        # ---------------------------------------------------
-        # Rule 2: Sensitive Information
-        # ---------------------------------------------------
+        if security.https:
+            security.findings.append(
+                SecurityFinding(
+                    title="Secure Transport",
+                    severity="Info",
+                    description="Request is transmitted over HTTPS.",
+                )
+            )
+        else:
+            security.findings.append(
+                SecurityFinding(
+                    title="Insecure Transport",
+                    severity="High",
+                    description="Request is transmitted over HTTP.",
+                )
+            )
 
-        if metadata.get("contains_sensitive_data"):
+        # --------------------------------------------------
+        # Authentication Detection
+        # --------------------------------------------------
 
-            fields = ", ".join(metadata.get("sensitive_fields", []))
+        if "Authorization" in request.headers:
+            security.authentication = "Bearer Token"
 
-            findings.append({
-                "severity": "Medium",
-                "title": "Sensitive Data Detected",
-                "description": f"Sensitive fields detected: {fields}",
-                "recommendation": "Ensure sensitive information is encrypted and never logged."
-            })
+        elif request.cookies:
+            security.authentication = "Cookie"
 
-        # ---------------------------------------------------
-        # Rule 3: Missing Authentication
-        # ---------------------------------------------------
+        else:
+            security.authentication = "None"
 
-        category = metadata.get("request_category")
+        # --------------------------------------------------
+        # Sensitive Headers
+        # --------------------------------------------------
+
+        for header in self.SENSITIVE_HEADERS:
+
+            if header in request.headers:
+
+                security.contains_sensitive_data = True
+
+                security.findings.append(
+                    SecurityFinding(
+                        title=f"Sensitive Header: {header}",
+                        severity="Medium",
+                        description=f"{header} is present in the request.",
+                    )
+                )
+
+        # --------------------------------------------------
+        # Dangerous HTTP Methods
+        # --------------------------------------------------
+
+        if request.method.upper() in {"PUT", "PATCH", "DELETE"}:
+
+            security.findings.append(
+                SecurityFinding(
+                    title="State-Changing Request",
+                    severity="Low",
+                    description=f"{request.method} modifies server-side resources.",
+                )
+            )
+
+        # --------------------------------------------------
+        # File Upload Detection
+        # --------------------------------------------------
+
+        content_type = request.metadata.content_type.lower()
 
         if (
-            category in ["User Management", "Payment", "Administration"]
-            and not metadata.get("has_authorization")
+            "multipart/form-data" in content_type
+            or "upload" in request.path.lower()
         ):
 
-            findings.append({
-                "severity": "Medium",
-                "title": "Missing Authorization",
-                "description": "Protected endpoint without Authorization header.",
-                "recommendation": "Verify that authentication is required."
-            })
+            security.findings.append(
+                SecurityFinding(
+                    title="File Upload Endpoint",
+                    severity="Medium",
+                    description="This request appears to upload files.",
+                )
+            )
 
-        # ---------------------------------------------------
-        # Rule 4: Dangerous HTTP Methods
-        # ---------------------------------------------------
+        # --------------------------------------------------
+        # Missing Cookies
+        # --------------------------------------------------
 
-        if method in ["PUT", "PATCH", "DELETE"]:
+        if not request.cookies:
 
-            findings.append({
-                "severity": "Low",
-                "title": "State-Changing Request",
-                "description": f"{method} modifies server-side resources.",
-                "recommendation": "Ensure authorization and input validation."
-            })
+            security.findings.append(
+                SecurityFinding(
+                    title="No Cookies Present",
+                    severity="Low",
+                    description="No cookies were included in this request.",
+                )
+            )
 
-        # ---------------------------------------------------
-        # Rule 5: File Upload
-        # ---------------------------------------------------
+        # --------------------------------------------------
+        # Large Cookie Collection
+        # --------------------------------------------------
 
-        if metadata.get("request_category") == "File Upload":
+        if len(request.cookies) > 10:
 
-            findings.append({
-                "severity": "Medium",
-                "title": "File Upload Endpoint",
-                "description": "File uploads should validate file type and size.",
-                "recommendation": "Validate MIME types, scan uploads, and restrict executable files."
-            })
+            security.findings.append(
+                SecurityFinding(
+                    title="Large Cookie Collection",
+                    severity="Low",
+                    description=f"{len(request.cookies)} cookies were sent.",
+                )
+            )
 
-        # ---------------------------------------------------
-        # Rule 6: Missing Cookies
-        # ---------------------------------------------------
+        # --------------------------------------------------
+        # API Keys / Tokens in URL
+        # --------------------------------------------------
 
-        if not metadata.get("has_cookies"):
+        for parameter in request.query_params.keys():
 
-            findings.append({
-                "severity": "Low",
-                "title": "No Cookies Present",
-                "description": "No cookies were included in this request.",
-                "recommendation": "Verify whether session management is expected."
-            })
+            if parameter.lower() in self.TOKEN_PARAMETERS:
 
-        return findings
+                security.contains_sensitive_data = True
+
+                security.findings.append(
+                    SecurityFinding(
+                        title="Sensitive Query Parameter",
+                        severity="High",
+                        description=f"'{parameter}' appears in the URL.",
+                    )
+                )
+
+        # --------------------------------------------------
+        # Missing Security Headers
+        # --------------------------------------------------
+
+        for header in self.SECURITY_HEADERS:
+
+            if header in request.response_headers:
+                security.security_headers.append(header)
+            else:
+                security.missing_headers.append(header)
+
+        if security.missing_headers:
+
+            security.findings.append(
+                SecurityFinding(
+                    title="Missing Security Headers",
+                    severity="Medium",
+                    description=(
+                        f"{len(security.missing_headers)} recommended "
+                        "security headers are absent."
+                    ),
+                )
+            )
+
+        # --------------------------------------------------
+        # Server Errors
+        # --------------------------------------------------
+
+        if request.status_code and request.status_code >= 500:
+
+            security.findings.append(
+                SecurityFinding(
+                    title="Server Error",
+                    severity="Medium",
+                    description=f"HTTP {request.status_code} returned.",
+                )
+            )
+
+        # --------------------------------------------------
+        # Summary
+        # --------------------------------------------------
+
+        security.summary = (
+            f"{len(security.findings)} security finding(s) detected."
+        )
+
+        request.security = security
+
+        return request
