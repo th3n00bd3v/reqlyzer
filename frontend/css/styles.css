@@ -1,0 +1,238 @@
+/* ==========================================
+   Reqlyzer Stylesheet
+   ========================================== */
+
+/* -----------------------------
+   General
+----------------------------- */
+
+body {
+
+    background-color: #f8f9fa;
+
+}
+
+.navbar-brand {
+
+    font-size: 1.3rem;
+
+    font-weight: 700;
+
+}
+
+.card {
+
+    border-radius: 10px;
+
+}
+
+.card-header {
+
+    font-weight: 600;
+
+}
+
+/* -----------------------------
+   Upload
+----------------------------- */
+
+#loadingSpinner {
+
+    width: 2rem;
+
+    height: 2rem;
+
+}
+
+/* -----------------------------
+   Summary Cards
+----------------------------- */
+
+.card h2 {
+
+    font-weight: 700;
+
+}
+
+/* -----------------------------
+   Requests Table
+----------------------------- */
+
+.requests-table {
+
+    max-height: 500px;
+
+    overflow-y: auto;
+
+}
+
+.requests-table table {
+
+    margin-bottom: 0;
+
+}
+
+.requests-table thead th {
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 2;
+
+}
+
+/* -----------------------------
+   Endpoint Column
+----------------------------- */
+
+.endpoint-column {
+
+    max-width: 420px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+}
+
+/* -----------------------------
+   Request Rows
+----------------------------- */
+
+.request-row {
+
+    cursor: pointer;
+
+    transition: background-color 0.15s ease;
+
+}
+
+.request-row:hover {
+
+    background-color: #eef5ff;
+
+}
+
+.request-row.table-primary {
+
+    font-weight: 600;
+
+}
+
+/* -----------------------------
+   Request Analysis Panel
+----------------------------- */
+
+.analysis-panel {
+
+    max-height: 700px;
+
+    overflow-y: auto;
+
+}
+
+/* -----------------------------
+   Security Findings
+----------------------------- */
+
+#securityFindings .card {
+
+    border-left: 4px solid #0d6efd;
+
+}
+
+#securityFindings p {
+
+    margin-bottom: 0;
+
+}
+
+/* -----------------------------
+   Recommendations
+----------------------------- */
+
+#recommendations {
+
+    padding-left: 20px;
+
+}
+
+#recommendations li {
+
+    margin-bottom: 8px;
+
+}
+
+/* -----------------------------
+   Scrollbar
+----------------------------- */
+
+.requests-table::-webkit-scrollbar,
+.analysis-panel::-webkit-scrollbar {
+
+    width: 8px;
+
+}
+
+.requests-table::-webkit-scrollbar-thumb,
+.analysis-panel::-webkit-scrollbar-thumb {
+
+    background: #bdbdbd;
+
+    border-radius: 8px;
+
+}
+
+.requests-table::-webkit-scrollbar-thumb:hover,
+.analysis-panel::-webkit-scrollbar-thumb:hover {
+
+    background: #8d8d8d;
+
+}
+
+/* -----------------------------
+   Responsive
+----------------------------- */
+
+@media (max-width: 992px) {
+
+    .endpoint-column {
+
+        max-width: 220px;
+
+    }
+
+    .analysis-panel {
+
+        max-height: none;
+
+        overflow: visible;
+
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .navbar-brand {
+
+        font-size: 1.1rem;
+
+    }
+
+    .card h2 {
+
+        font-size: 1.5rem;
+
+    }
+
+    .endpoint-column {
+
+        max-width: 160px;
+
+    }
+
+}
