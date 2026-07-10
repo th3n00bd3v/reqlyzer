@@ -30,3 +30,40 @@ async function uploadHAR(file) {
     return await response.json();
 
 }
+
+/*
+===========================================
+Generate AI Summary
+===========================================
+*/
+
+async function generateAISummary(request) {
+
+    const response = await fetch(
+        `${API_BASE_URL}/ai/request`,
+        {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                request: request
+            })
+
+        }
+    );
+
+    if (!response.ok) {
+
+        throw new Error(
+            "Failed to generate AI summary."
+        );
+
+    }
+
+    return await response.json();
+
+}

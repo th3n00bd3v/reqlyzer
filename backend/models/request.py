@@ -69,7 +69,7 @@ class AnalyzedRequest(BaseModel):
 
     risk: RiskAnalysis = Field(default_factory=RiskAnalysis)
 
-    ai_summary: str | None = None
+    ai_summary: str = " "
 
     # -----------------------------------------------------
     # Helper Methods

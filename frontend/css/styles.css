@@ -213,6 +213,57 @@ body {
 
     }
 
+/* ==========================================
+   AI Markdown
+========================================== */
+
+.ai-markdown {
+
+    line-height: 1.8;
+
+    font-size: 0.95rem;
+
+}
+
+.ai-markdown h1,
+.ai-markdown h2,
+.ai-markdown h3 {
+
+    color: #0d6efd;
+
+    margin-top: 1.2rem;
+
+    margin-bottom: .6rem;
+
+    font-weight: 600;
+
+}
+
+.ai-markdown p {
+
+    margin-bottom: .8rem;
+
+}
+
+.ai-markdown ul {
+
+    padding-left: 1.4rem;
+
+}
+
+.ai-markdown li {
+
+    margin-bottom: .35rem;
+
+}
+
+.ai-markdown strong {
+
+    color: #212529;
+
+}
+
+
 }
 
 @media (max-width: 768px) {

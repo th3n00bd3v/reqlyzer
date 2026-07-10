@@ -5,35 +5,31 @@ Method Badge
 */
 
 function methodBadge(method) {
+  switch ((method || "").toUpperCase()) {
+    case "GET":
+      return '<span class="badge bg-primary">GET</span>';
 
-    switch ((method || "").toUpperCase()) {
+    case "POST":
+      return '<span class="badge bg-success">POST</span>';
 
-        case "GET":
-            return '<span class="badge bg-primary">GET</span>';
+    case "PUT":
+      return '<span class="badge bg-warning text-dark">PUT</span>';
 
-        case "POST":
-            return '<span class="badge bg-success">POST</span>';
+    case "PATCH":
+      return '<span class="badge bg-info text-dark">PATCH</span>';
 
-        case "PUT":
-            return '<span class="badge bg-warning text-dark">PUT</span>';
+    case "DELETE":
+      return '<span class="badge bg-danger">DELETE</span>';
 
-        case "PATCH":
-            return '<span class="badge bg-info text-dark">PATCH</span>';
+    case "OPTIONS":
+      return '<span class="badge bg-secondary">OPTIONS</span>';
 
-        case "DELETE":
-            return '<span class="badge bg-danger">DELETE</span>';
+    case "HEAD":
+      return '<span class="badge bg-dark">HEAD</span>';
 
-        case "OPTIONS":
-            return '<span class="badge bg-secondary">OPTIONS</span>';
-
-        case "HEAD":
-            return '<span class="badge bg-dark">HEAD</span>';
-
-        default:
-            return `<span class="badge bg-light text-dark">${method || "-"}</span>`;
-
-    }
-
+    default:
+      return `<span class="badge bg-light text-dark">${method || "-"}</span>`;
+  }
 }
 
 /*
@@ -43,26 +39,22 @@ Risk Badge
 */
 
 function riskBadge(level) {
+  switch (level) {
+    case "Low":
+      return '<span class="badge bg-success">Low</span>';
 
-    switch (level) {
+    case "Medium":
+      return '<span class="badge bg-warning text-dark">Medium</span>';
 
-        case "Low":
-            return '<span class="badge bg-success">Low</span>';
+    case "High":
+      return '<span class="badge bg-danger">High</span>';
 
-        case "Medium":
-            return '<span class="badge bg-warning text-dark">Medium</span>';
+    case "Critical":
+      return '<span class="badge bg-dark">Critical</span>';
 
-        case "High":
-            return '<span class="badge bg-danger">High</span>';
-
-        case "Critical":
-            return '<span class="badge bg-dark">Critical</span>';
-
-        default:
-            return '<span class="badge bg-secondary">Unknown</span>';
-
-    }
-
+    default:
+      return '<span class="badge bg-secondary">Unknown</span>';
+  }
 }
 
 /*
@@ -72,41 +64,117 @@ Display Request Details
 */
 
 function showRequestDetails(request) {
+  document.getElementById("whatText").textContent =
+    request.analysis?.what || "-";
 
-    //--------------------------------------------------
-    // 5W1H
-    //--------------------------------------------------
+  document.getElementById("whoText").textContent = request.analysis?.who || "-";
 
-    document.getElementById("whatText").textContent =
-        request.analysis?.what || "-";
+  document.getElementById("whyText").textContent = request.analysis?.why || "-";
 
-    document.getElementById("whoText").textContent =
-        request.analysis?.who || "-";
+  document.getElementById("whereText").textContent =
+    request.analysis?.where || "-";
 
-    document.getElementById("whyText").textContent =
-        request.analysis?.why || "-";
+  document.getElementById("howText").textContent = request.analysis?.how || "-";
 
-    document.getElementById("whereText").textContent =
-        request.analysis?.where || "-";
+  //--------------------------------------------------
+  // AI Insight
+  //--------------------------------------------------
 
-    document.getElementById("howText").textContent =
-        request.analysis?.how || "-";
+  const aiSummary = document.getElementById("aiSummary");
 
-    //--------------------------------------------------
-    // Security Findings
-    //--------------------------------------------------
+  if (aiSummary) {
+    const selectedRequestId = request.id;
 
-    const findingsDiv =
-        document.getElementById("securityFindings");
+    aiSummary.dataset.requestId = selectedRequestId;
 
-    findingsDiv.innerHTML = "";
+    aiSummary.innerHTML = `
 
-    const findings =
-        request.security?.findings || [];
+    <div class="d-flex align-items-center">
 
-    if (findings.length === 0) {
+        <div
+            class="spinner-border spinner-border-sm me-2"
+            role="status">
 
-        findingsDiv.innerHTML = `
+        </div>
+
+        <span class="text-muted">
+
+            Reqlyzer AI is analyzing this request...
+
+        </span>
+
+    </div>
+
+`;
+
+    generateAISummary(request)
+      .then((result) => {
+        if (aiSummary.dataset.requestId != selectedRequestId) return;
+
+        const summary = result.summary || "No AI summary returned.";
+
+        aiSummary.innerHTML = `
+
+<div class="d-flex align-items-start">
+
+    <div class="me-3 fs-3">
+
+        🤖
+
+    </div>
+
+    <div class="flex-grow-1">
+
+        <div class="fw-semibold text-primary mb-3">
+
+            Reqlyzer AI
+
+        </div>
+
+        <div class="ai-markdown">
+
+            ${marked.parse(summary)}
+
+        </div>
+
+    </div>
+
+</div>
+
+`;
+
+        console.log("AI response:", result);
+      })
+
+      .catch((error) => {
+        console.error(error);
+
+        if (aiSummary.dataset.requestId != selectedRequestId) return;
+
+        aiSummary.innerHTML = `
+
+    <div class="alert alert-warning mb-0">
+
+        Unable to generate an AI explanation for this request.
+
+    </div>
+
+`;
+      });
+  }
+
+  //--------------------------------------------------
+  // Security Findings
+  //--------------------------------------------------
+
+  const findingsDiv = document.getElementById("securityFindings");
+
+  findingsDiv.innerHTML = "";
+
+  const findings = request.security?.findings || [];
+
+  if (findings.length === 0) {
+    findingsDiv.innerHTML = `
 
             <div class="alert alert-success mb-0">
 
@@ -115,38 +183,33 @@ function showRequestDetails(request) {
             </div>
 
         `;
+  } else {
+    findings.forEach((finding) => {
+      let badge = "secondary";
 
-    } else {
+      switch (finding.severity) {
+        case "Info":
+          badge = "primary";
+          break;
 
-        findings.forEach(finding => {
+        case "Low":
+          badge = "success";
+          break;
 
-            let badge = "secondary";
+        case "Medium":
+          badge = "warning";
+          break;
 
-            switch (finding.severity) {
+        case "High":
+          badge = "danger";
+          break;
 
-                case "Info":
-                    badge = "primary";
-                    break;
+        case "Critical":
+          badge = "dark";
+          break;
+      }
 
-                case "Low":
-                    badge = "success";
-                    break;
-
-                case "Medium":
-                    badge = "warning";
-                    break;
-
-                case "High":
-                    badge = "danger";
-                    break;
-
-                case "Critical":
-                    badge = "dark";
-                    break;
-
-            }
-
-            findingsDiv.innerHTML += `
+      findingsDiv.innerHTML += `
 
                 <div class="card mb-2 shadow-sm">
 
@@ -179,26 +242,21 @@ function showRequestDetails(request) {
                 </div>
 
             `;
+    });
+  }
 
-        });
+  //--------------------------------------------------
+  // Recommendations
+  //--------------------------------------------------
 
-    }
+  const recommendations = document.getElementById("recommendations");
 
-    //--------------------------------------------------
-    // Recommendations
-    //--------------------------------------------------
+  recommendations.innerHTML = "";
 
-    const recommendations =
-        document.getElementById("recommendations");
+  const recommendationList = request.risk?.recommendations || [];
 
-    recommendations.innerHTML = "";
-
-    const recommendationList =
-        request.risk?.recommendations || [];
-
-    if (recommendationList.length === 0) {
-
-        recommendations.innerHTML = `
+  if (recommendationList.length === 0) {
+    recommendations.innerHTML = `
 
             <li>
 
@@ -207,12 +265,9 @@ function showRequestDetails(request) {
             </li>
 
         `;
-
-    } else {
-
-        recommendationList.forEach(rec => {
-
-            recommendations.innerHTML += `
+  } else {
+    recommendationList.forEach((rec) => {
+      recommendations.innerHTML += `
 
                 <li class="mb-2">
 
@@ -221,9 +276,6 @@ function showRequestDetails(request) {
                 </li>
 
             `;
-
-        });
-
-    }
-
+    });
+  }
 }

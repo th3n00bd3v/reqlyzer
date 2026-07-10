@@ -55,3 +55,29 @@ Risk Score
     │
     ▼
 AI Explanation
+
+Parse
+
+↓
+
+Metadata
+
+↓
+
+Request Analysis
+
+↓
+
+Security
+
+↓
+
+Risk
+
+↓
+
+AI Analysis
+
+↓
+
+Return JSON
